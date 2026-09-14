@@ -14,12 +14,27 @@
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com)
 [![License](https://img.shields.io/badge/License-MIT-A855F7?style=flat-square)](LICENSE)
 
+<br/>
+
+[![Live Frontend Demo](https://img.shields.io/badge/Live%20Demo-adaptflow--frontend.onrender.com-00c853?style=for-the-badge&logo=render&logoColor=white)](https://adaptflow-frontend.onrender.com)
+[![Backend API Live](https://img.shields.io/badge/Backend%20API-adaptflow--backend.onrender.com-2979ff?style=for-the-badge&logo=spring&logoColor=white)](https://adaptflow-backend.onrender.com)
+
 <p align="center">
 <strong>AdaptFlow</strong> is a full-stack, constraint-driven adaptive layout engine that automatically
 scales, reflows, and re-renders a single ad creative across every IAB/Meta surface with zero manual resizing.
 </p>
 
 </div>
+
+---
+
+> ### 🚀 Live Cloud Deployment
+>
+> | Component | Live URL | Description |
+> |---|---|---|
+> | 🌐 **Web App (Frontend)** | [**https://adaptflow-frontend.onrender.com**](https://adaptflow-frontend.onrender.com) | Interactive React 19 UI & Multi-Surface Simulator |
+> | ⚡ **REST API (Backend)** | [**https://adaptflow-backend.onrender.com**](https://adaptflow-backend.onrender.com) | Spring Boot 3 API with PostgreSQL 16 on Render |
+> | 🔑 **Demo Account** | `elena@flam.io` / `password123` | *Admin Account:* `admin@adaptflow.io` / `admin123` |
 
 ---
 
@@ -35,6 +50,7 @@ scales, reflows, and re-renders a single ad creative across every IAB/Meta surfa
 - [API Reference](#api-reference)
 - [Engine Deep Dive](#engine-deep-dive)
 - [Pages and Features](#pages-and-features)
+- [Live Deployment & Architecture](#live-deployment--architecture)
 - [Running Tests](#running-tests)
 - [Contributing](#contributing)
 - [License](#license)
@@ -475,6 +491,23 @@ Renders the active layout across **5 surfaces simultaneously**:
 - Workspace configuration
 - Surface preset management
 - Admin console (ADMIN role only)
+
+---
+
+## Live Deployment & Architecture
+
+AdaptFlow is deployed and fully operational in production on **Render.com**:
+
+| Resource | Service Type | Production URL | Status |
+|---|---|---|---|
+| **Frontend Web App** | Static Site (Vite + React 19) | [https://adaptflow-frontend.onrender.com](https://adaptflow-frontend.onrender.com) | ![Live](https://img.shields.io/badge/Status-Operational-brightgreen?style=flat-square) |
+| **Backend REST API** | Web Service (Docker / Java 17) | [https://adaptflow-backend.onrender.com](https://adaptflow-backend.onrender.com) | ![Live](https://img.shields.io/badge/Status-Operational-brightgreen?style=flat-square) |
+| **Database** | Managed PostgreSQL 16 | Render Internal DB (`adaptflow-db`) | ![Live](https://img.shields.io/badge/Status-Connected-brightgreen?style=flat-square) |
+
+### Test Credentials
+- **Editor / Creative User:** `elena@flam.io` / `password123`
+- **Administrator:** `admin@adaptflow.io` / `admin123`
+- *Self-Registration:* Open for new users via the **Register** page.
 
 ---
 

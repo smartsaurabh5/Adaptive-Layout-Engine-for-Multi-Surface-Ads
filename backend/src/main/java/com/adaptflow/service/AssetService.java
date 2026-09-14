@@ -48,45 +48,66 @@ public class AssetService {
     @PostConstruct
     public void initStorageAndSeeds() {
         try {
-            Path path = Paths.get(uploadDir);
+            Path path = getSafeUploadDir();
             if (!Files.exists(path)) {
                 Files.createDirectories(path);
             }
-        } catch (IOException e) {
-            throw new RuntimeException("Could not initialize upload folder: " + e.getMessage(), e);
+        } catch (Exception e) {
+            System.err.println("Warning: Could not initialize primary upload folder: " + e.getMessage());
         }
 
-        if (assetRepository.count() == 0) {
-            User demoUser = userRepository.findAll().stream().findFirst().orElse(null);
-            assetRepository.saveAll(List.of(
-                    new Asset("asset-1", "AdaptFlow-Mark-Dark.svg", "SVG", "image/svg+xml", 12288L, "", "Primary Brand,Vector Ready", demoUser),
-                    new Asset("asset-2", "Acoustic-Pro-Headphones-Cutout.png", "PNG", "image/png", 2516582L, "", "Cutout,Transparent", demoUser),
-                    new Asset("asset-3", "Summer-Warm-Glow-Backdrop.jpg", "JPG", "image/jpeg", 3985408L, "", "Campaigns,Full Bleed", demoUser),
-                    new Asset("asset-4", "Watch-Ultra-Titanium.png", "PNG", "image/png", 1992294L, "", "E-Commerce,3D Render", demoUser),
-                    new Asset("asset-5", "Brand-Accent-Gradient.png", "PNG", "image/png", 894520L, "", "Texture,Hero Fill", demoUser)
-            ));
-        }
-
-        // Ensure physical asset files exist on disk and storage paths are properly assigned
-        for (Asset asset : assetRepository.findAll()) {
-            try {
-                if (asset.getStoragePath() == null || asset.getStoragePath().isBlank() || !Files.exists(Paths.get(asset.getStoragePath()))) {
-                    Path file = ensureSeededFile(asset);
-                    asset.setStoragePath(file.toAbsolutePath().toString());
-                    asset.setSizeBytes(Files.size(file));
-                    assetRepository.save(asset);
-                }
-            } catch (Exception e) {
-                System.err.println("Could not seed file for asset " + asset.getId() + ": " + e.getMessage());
+        try {
+            if (assetRepository.count() == 0) {
+                User demoUser = userRepository.findAll().stream().findFirst().orElse(null);
+                assetRepository.saveAll(List.of(
+                        new Asset("asset-1", "AdaptFlow-Mark-Dark.svg", "SVG", "image/svg+xml", 12288L, "", "Primary Brand,Vector Ready", demoUser),
+                        new Asset("asset-2", "Acoustic-Pro-Headphones-Cutout.png", "PNG", "image/png", 2516582L, "", "Cutout,Transparent", demoUser),
+                        new Asset("asset-3", "Summer-Warm-Glow-Backdrop.jpg", "JPG", "image/jpeg", 3985408L, "", "Campaigns,Full Bleed", demoUser),
+                        new Asset("asset-4", "Watch-Ultra-Titanium.png", "PNG", "image/png", 1992294L, "", "E-Commerce,3D Render", demoUser),
+                        new Asset("asset-5", "Brand-Accent-Gradient.png", "PNG", "image/png", 894520L, "", "Texture,Hero Fill", demoUser)
+                ));
             }
+
+            // Ensure physical asset files exist on disk and storage paths are properly assigned
+            for (Asset asset : assetRepository.findAll()) {
+                try {
+                    if (asset.getStoragePath() == null || asset.getStoragePath().isBlank() || !Files.exists(Paths.get(asset.getStoragePath()))) {
+                        Path file = ensureSeededFile(asset);
+                        if (file != null && Files.exists(file)) {
+                            asset.setStoragePath(file.toAbsolutePath().toString());
+                            asset.setSizeBytes(Files.size(file));
+                            assetRepository.save(asset);
+                        }
+                    }
+                } catch (Exception e) {
+                    System.err.println("Notice: Could not seed file for asset " + asset.getId() + ": " + e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Notice: Seed asset initialization skipped: " + e.getMessage());
+        }
+    }
+
+    private Path getSafeUploadDir() {
+        try {
+            Path p = Paths.get(uploadDir != null ? uploadDir : "./uploads");
+            if (!Files.exists(p)) {
+                Files.createDirectories(p);
+            }
+            return p;
+        } catch (Exception e) {
+            Path tmp = Paths.get(System.getProperty("java.io.tmpdir"), "adaptflow-uploads");
+            try {
+                if (!Files.exists(tmp)) {
+                    Files.createDirectories(tmp);
+                }
+            } catch (Exception ignored) {}
+            return tmp;
         }
     }
 
     public Path ensureSeededFile(Asset asset) throws IOException {
-        Path dir = Paths.get(uploadDir);
-        if (!Files.exists(dir)) {
-            Files.createDirectories(dir);
-        }
+        Path dir = getSafeUploadDir();
 
         String fn = asset.getFileName() != null ? asset.getFileName() : asset.getId() + ".png";
         Path targetPath = dir.resolve(asset.getId() + "-" + fn);
@@ -107,50 +128,59 @@ public class AssetService {
                     </svg>
                     """;
             Files.writeString(targetPath, svgContent);
-        } else if (fn.toLowerCase().endsWith(".jpg") || fn.toLowerCase().endsWith(".jpeg")) {
-            BufferedImage img = new BufferedImage(800, 600, BufferedImage.TYPE_INT_RGB);
-            Graphics2D g = img.createGraphics();
-            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            GradientPaint gp = new GradientPaint(0, 0, new Color(217, 119, 6), 800, 600, new Color(79, 70, 229));
-            g.setPaint(gp);
-            g.fillRect(0, 0, 800, 600);
-            g.setColor(new Color(254, 240, 138, 180));
-            g.fillOval(250, 150, 300, 300);
-            g.dispose();
-            ImageIO.write(img, "jpg", targetPath.toFile());
-        } else {
-            BufferedImage img = new BufferedImage(800, 600, BufferedImage.TYPE_INT_ARGB);
-            Graphics2D g = img.createGraphics();
-            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            if (fn.toLowerCase().contains("headphone") || fn.toLowerCase().contains("acoustic")) {
-                g.setColor(new Color(15, 23, 42));
-                g.fillRect(0, 0, 800, 600);
-                g.setColor(new Color(99, 102, 241));
-                g.setStroke(new BasicStroke(16, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-                g.drawArc(260, 180, 280, 260, 0, 180);
-                g.setColor(new Color(129, 140, 248));
-                g.fillRoundRect(220, 280, 70, 140, 30, 30);
-                g.fillRoundRect(510, 280, 70, 140, 30, 30);
-            } else if (fn.toLowerCase().contains("watch") || fn.toLowerCase().contains("titanium")) {
-                g.setColor(new Color(24, 24, 27));
-                g.fillRect(0, 0, 800, 600);
-                g.setColor(new Color(113, 113, 122));
-                g.fillRoundRect(340, 100, 120, 80, 16, 16);
-                g.fillRoundRect(340, 420, 120, 80, 16, 16);
-                g.setColor(new Color(39, 39, 42));
-                g.fillRoundRect(280, 160, 240, 280, 48, 48);
-                g.setColor(new Color(249, 115, 22));
-                g.setStroke(new BasicStroke(8));
-                g.drawRoundRect(280, 160, 240, 280, 48, 48);
-                g.setColor(new Color(9, 9, 11));
-                g.fillOval(320, 220, 160, 160);
-            } else {
-                GradientPaint gp = new GradientPaint(0, 0, new Color(192, 38, 211), 800, 600, new Color(6, 182, 212));
+            return targetPath;
+        }
+
+        try {
+            if (fn.toLowerCase().endsWith(".jpg") || fn.toLowerCase().endsWith(".jpeg")) {
+                BufferedImage img = new BufferedImage(800, 600, BufferedImage.TYPE_INT_RGB);
+                Graphics2D g = img.createGraphics();
+                g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                GradientPaint gp = new GradientPaint(0, 0, new Color(217, 119, 6), 800, 600, new Color(79, 70, 229));
                 g.setPaint(gp);
                 g.fillRect(0, 0, 800, 600);
+                g.setColor(new Color(254, 240, 138, 180));
+                g.fillOval(250, 150, 300, 300);
+                g.dispose();
+                ImageIO.write(img, "jpg", targetPath.toFile());
+            } else {
+                BufferedImage img = new BufferedImage(800, 600, BufferedImage.TYPE_INT_ARGB);
+                Graphics2D g = img.createGraphics();
+                g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                if (fn.toLowerCase().contains("headphone") || fn.toLowerCase().contains("acoustic")) {
+                    g.setColor(new Color(15, 23, 42));
+                    g.fillRect(0, 0, 800, 600);
+                    g.setColor(new Color(99, 102, 241));
+                    g.setStroke(new BasicStroke(16, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                    g.drawArc(260, 180, 280, 260, 0, 180);
+                    g.setColor(new Color(129, 140, 248));
+                    g.fillRoundRect(220, 280, 70, 140, 30, 30);
+                    g.fillRoundRect(510, 280, 70, 140, 30, 30);
+                } else if (fn.toLowerCase().contains("watch") || fn.toLowerCase().contains("titanium")) {
+                    g.setColor(new Color(24, 24, 27));
+                    g.fillRect(0, 0, 800, 600);
+                    g.setColor(new Color(113, 113, 122));
+                    g.fillRoundRect(340, 100, 120, 80, 16, 16);
+                    g.fillRoundRect(340, 420, 120, 80, 16, 16);
+                    g.setColor(new Color(39, 39, 42));
+                    g.fillRoundRect(280, 160, 240, 280, 48, 48);
+                    g.setColor(new Color(249, 115, 22));
+                    g.setStroke(new BasicStroke(8));
+                    g.drawRoundRect(280, 160, 240, 280, 48, 48);
+                    g.setColor(new Color(9, 9, 11));
+                    g.fillOval(320, 220, 160, 160);
+                } else {
+                    GradientPaint gp = new GradientPaint(0, 0, new Color(192, 38, 211), 800, 600, new Color(6, 182, 212));
+                    g.setPaint(gp);
+                    g.fillRect(0, 0, 800, 600);
+                }
+                g.dispose();
+                ImageIO.write(img, "png", targetPath.toFile());
             }
-            g.dispose();
-            ImageIO.write(img, "png", targetPath.toFile());
+        } catch (Throwable t) {
+            // Fallback SVG representation if graphics/AWT fails in headless environment
+            String fallbackSvg = "<svg xmlns='http://www.w3.org/2000/svg' width='800' height='600'><rect width='100%' height='100%' fill='#3b82f6'/><text x='50%' y='50%' fill='#ffffff' font-size='24' text-anchor='middle'>AdaptFlow Asset</text></svg>";
+            Files.writeString(targetPath, fallbackSvg);
         }
         return targetPath;
     }

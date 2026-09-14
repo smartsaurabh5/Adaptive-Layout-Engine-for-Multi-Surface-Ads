@@ -1,0 +1,54 @@
+# Render Blueprint Specification
+# Deploy AdaptFlow (PostgreSQL + Spring Boot Backend + React Frontend)
+
+databases:
+  - name: adaptflow-db
+    databaseName: adaptflow
+    user: adaptflow_user
+    plan: free
+
+services:
+  # Spring Boot Backend Web Service
+  - type: web
+    name: adaptflow-backend
+    runtime: docker
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    plan: free
+    healthCheckPath: /api/surfaces
+    envVars:
+      - key: DB_URL
+        fromDatabase:
+          name: adaptflow-db
+          property: connectionString
+      - key: DB_USERNAME
+        fromDatabase:
+          name: adaptflow-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: adaptflow-db
+          property: password
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_EXPIRY_MS
+        value: "900000"
+      - key: JWT_REFRESH_EXPIRY_MS
+        value: "604800000"
+      - key: CORS_ALLOWED_ORIGINS
+        value: "https://adaptflow-frontend.onrender.com,http://localhost:5173"
+
+  # React + Vite Frontend Static Site
+  - type: web
+    name: adaptflow-frontend
+    runtime: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    rootDir: frontend
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://adaptflow-backend.onrender.com/api
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
